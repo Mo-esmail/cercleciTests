@@ -1,4 +1,7 @@
 version: '2.1'
+display:
+    home_url: https://aws.amazon.com/s3/
+    source_url: https://github.com/CircleCI-Public/aws-s3-orb
 orbs:
   aws-s3: circleci/aws-s3@3.0
 jobs:
@@ -16,11 +19,11 @@ jobs:
           aws-region: AWS_REGION_BLUE
           aws-secret-access-key: AWS_SECRET_ACCESS_KEY_BLUE
           from: bucket
-          to: 's3://my-s3-bucket-name/prefix'
+          to: 's3://my-s3-bucket-name123123/prefix'
       - aws-s3/copy:
           arguments: '--dryrun'
           from: bucket/build_asset.txt
-          to: 's3://my-s3-bucket-name'
+          to: 's3://my-s3-bucket-name123123'
 workflows:
   s3-example:
     jobs:
