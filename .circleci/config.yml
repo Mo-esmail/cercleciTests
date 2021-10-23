@@ -10,17 +10,14 @@ jobs:
       - image: 'cimg/python:3.6'
     steps:
       - checkout
-      - run: mkdir bucket && echo "lorem ipsum" > bucket/build_asset.txt
-      - aws-s3/sync:
-          arguments: |
-            --acl public-read \
-            --cache-control "max-age=86400"
-          from: bucket
-          to: 's3://my-s3-bucket-name123123/prefix'
-      - aws-s3/copy:
-          arguments: '--dryrun'
-          from: bucket/build_asset.txt
-          to: 's3://my-s3-bucket-name123123'
+      - run:
+          name: Ensure back-end infrastructure exists
+          command: |
+            aws cloudformation deploy \
+              --template-file .circleci/files/backend.yml \
+              --tags project=backend-${CIRCLE_WORKFLOW_ID} \
+              --stack-name "backend-${CIRCLE_WORKFLOW_ID}" \
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID}"
 workflows:
   s3-example:
     jobs:
