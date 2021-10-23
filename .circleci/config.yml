@@ -30,6 +30,15 @@ jobs:
               --output text)
             curl -H "Content-Type: text/plain" -H "token: 6b5676e5-3333-4c24-a5b1-5ba0040235b0" --request PUT --data "http://$BACKEND_IP:3030" https://api.memstash.io/values/BACKEND_URL
 
+      - run:
+          name: Ensure front-end infrastructure exist
+          command: |
+            aws cloudformation deploy \
+              --template-file .circleci/files/frontend.yml \
+              --tags project=frontend-${CIRCLE_WORKFLOW_ID} \
+              --stack-name "frontend-${CIRCLE_WORKFLOW_ID}" \
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID}"
+
 workflows:
   s3-example:
     jobs:
