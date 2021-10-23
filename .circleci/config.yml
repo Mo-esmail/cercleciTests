@@ -4,6 +4,27 @@ display:
     source_url: https://github.com/CircleCI-Public/aws-s3-orb
 orbs:
   aws-s3: circleci/aws-s3@3.0
+commands:
+  destroy-environment:
+    description: Destroy Cloud Formation Stacks and infrastructure
+    parameters:
+      when:
+        type: string
+      id:
+        type: string
+    steps:
+      - run:
+          name: Destroy udapeople backend cloudformation stack
+          command: |
+            aws cloudformation delete-stack --stack-name backend-<< parameters.id >>
+          when: << parameters.when >>
+      - run:
+          name: Destroy udapeople frontend cloudformation stack and S3 bucket
+          command: |
+            aws s3 rm s3://udapeople-${CIRCLE_WORKFLOW_ID} --recursive
+            aws cloudformation delete-stack --stack-name frontend-<< parameters.id >>
+          when: << parameters.when >>
+
 jobs:
   build:
     docker:
