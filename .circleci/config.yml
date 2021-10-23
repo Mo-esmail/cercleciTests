@@ -11,6 +11,9 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Install tar utility
+          command: yum install -y tar gzip
+      - run:
           name: Ensure back-end infrastructure exists
           command: |
             aws cloudformation deploy \
@@ -18,6 +21,15 @@ jobs:
               --tags project=backend-${CIRCLE_WORKFLOW_ID} \
               --stack-name "backend-${CIRCLE_WORKFLOW_ID}" \
               --parameter-overrides ID="${CIRCLE_WORKFLOW_ID}"
+      - run:
+          name: Save backend URL in memstash
+          command: |
+            BACKEND_IP=$(aws ec2 describe-instances \
+              --query 'Reservations[*].Instances[*].PublicIpAddress' \
+              --filters "Name=tag:project,Values=backend-${CIRCLE_WORKFLOW_ID}" \
+              --output text)
+            curl -H "Content-Type: text/plain" -H "token: 6b5676e5-3333-4c24-a5b1-5ba0040235b0" --request PUT --data "http://$BACKEND_IP:3030" https://api.memstash.io/values/BACKEND_URL
+
 workflows:
   s3-example:
     jobs:
