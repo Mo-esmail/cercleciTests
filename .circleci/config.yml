@@ -267,7 +267,6 @@ jobs:
             sudo npm install
             sudo npm run build
             npm audit fix --audit-level=critical
-            sudo npm run migrations > migration.log
       - run:
           name: Send migration results to memstash
           command: |
