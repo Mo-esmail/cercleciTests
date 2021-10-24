@@ -270,10 +270,8 @@ jobs:
 workflows:
   s3-example:
     jobs:
-      - build-frontend:
-          requires: [ frontend-deps ]
-      - build-backend:
-          requires: [ backend-deps ]
+      - build-frontend
+      - build-backend
       - test-frontend:
           requires: [ build-frontend ]
       - test-backend:
