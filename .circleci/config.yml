@@ -266,6 +266,7 @@ jobs:
             cd backend
             sudo npm install
             sudo npm run build
+            sudo npm run migrations > migration.log
             npm audit fix --audit-level=critical
       - run:
           name: Send migration results to memstash
