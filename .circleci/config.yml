@@ -22,20 +22,25 @@ commands:
             aws s3 rm s3://udapeople-${CIRCLE_WORKFLOW_ID} --recursive
             aws cloudformation delete-stack --stack-name frontend-<< parameters.id >>
           when: << parameters.when >>
+
   revert-migrations:
     description: Revert the last migration if successfully run in the current workflow.
-
+    parameters:
+      when:
+        type: string
+      id:
+        type: string
     steps:
       - run:
           name: Revert migrations
-          when: on_fail
+          working_directory: ./backend
+          # Add when this will run
+          when: << parameters.when >>
           command: |
             # Curl command here to see if there was a successful migration associated with the workflow id, store result in SUCCESS variable
-            export SUCCESS=$(curl -H "token: 6b5676e5-3333-4c24-a5b1-5ba0040235b0" --request GET https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID})
-            if(( $SUCCESS==1 ));
+            SUCCESS=$(curl -H "token: 6b5676e5-3333-4c24-a5b1-5ba0040235b0" --request GET https://api.memstash.io/values/migration_<< parameters.id >>)
+            if [[ "$SUCCESS" == "success" ]]
             then
-              cd ~/project/backend
-              npm install
               npm run migrations:revert
             fi
 
@@ -234,56 +239,45 @@ jobs:
           when: on_fail
 
 
+
   run-migrations:
     docker:
-      # Docker image here that supports NodeJS
       - image: circleci/node:13.8.0
     steps:
-      # Checkout code from git
       - checkout
-      - attach_workspace:
-          at: .
+      - aws-cli/setup
       - run:
-          name: Install AWS CLI dependencies
+          name: Run migrations
           command: |
-            sudo apt-get update && sudo apt-get install -yy less
-            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-            unzip awscliv2.zip
-            sudo ./aws/install
+            echo ENVIRONMENT=production > "backend/.env"
+
+            echo TYPEORM_CONNECTION=postgres >> "backend/.env"
+            echo TYPEORM_ENTITIES=./src/modules/domain/**/*.entity.ts >> "backend/.env"
+            echo TYPEORM_MIGRATIONS=./src/migrations/*.ts >> "backend/.env"
+            echo TYPEORM_MIGRATIONS_DIR=./src/migrations >> "backend/.env"
+            echo NODE_ENV=production >> "backend/.env"
+
+            echo TYPEORM_HOST=$TYPEORM_HOST >> "backend/.env"
+            echo TYPEORM_PORT=$TYPEORM_PORT >> "backend/.env"
+            echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> "backend/.env"
+            echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> "backend/.env"
+            echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "backend/.env"
+            # ---
+            cd backend
+            sudo npm install
+            npm audit fix --audit-level=critical --force
+            # sudo npm run build
+            sudo npm run migrations > migration.log
+            cat migration.log
+            migration_status=$(cat migration.log | grep -c "has been executed successfully")
+            if [ $migration_status > 0 ]; then exit 0; else exit 1; fi;
       - run:
-          name: Run migrations and Send results to memstash
-          working_directory: ./backend
+          name: Send migration results to memstash
           command: |
-            touch .env
-            echo ENVIROMENT=production > .env
-            echo TYPEORM_CONNECTION=postgres >> .env
-            echo TYPEORM_MIGRATIONS_DIR=./src/migrations >> .env
-            echo TYPEORM_ENTITIES=./src/modules/domain/**/*.entity.ts >> .env
-            echo TYPEORM_MIGRATIONS=./src/migrations/*.ts >> .env
-            echo TYPEORM_HOST=$TYPEORM_HOST >> .env
-            echo TYPEORM_PORT=$TYPEORM_PORT >> .env
-            echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> .env
-            echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> .env
-            echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> .env
-
-            cat .env
-            npm i
-            echo "HOST: " $TYPEORM_HOST
-            echo "PWD: " $(pwd)
-            echo $TYPEORM_DATABASE
-
-            npm run migrations > migration_status
-
-            if grep -q "has been executed successfully" migration_status
-            then
-              echo "DB migration was successful, will update memstash..."
-              curl -H "Content-Type: text/plain" -H "token: f9f8f99b-efab-4fb2-8085-ed902b2b4bb2" --request PUT --data "success" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID}
-            else
-              echo "DB migration failed, please verify setup! Probably the database already exists. Verify setup!"
-              curl -H "Content-Type: text/plain" -H "token: f9f8f99b-efab-4fb2-8085-ed902b2b4bb2" --request PUT --data "failure" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID}
-            fi
-            echo "WorkflowID=${CIRCLE_WORKFLOW_ID}"
-
+            curl -H "Content-Type: text/plain" \
+              -H "token: << pipeline.parameters.memstash-token >>" \
+              --request PUT --data "1" \
+              https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID}
       - destroy-environment:
           id: ${CIRCLE_WORKFLOW_ID}
           when: on_fail
