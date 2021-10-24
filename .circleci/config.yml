@@ -72,11 +72,44 @@ jobs:
       - checkout
       # Add ssh keys with fingerprint
       - add_ssh_keys:
-          fingerprints: ["4d:3d:70:ce:40:55:40:f6:38:94:61:b7:0d:db:0d:e8:85:a1:fd:9e"]
+          fingerprints: ["38:79:bc:00:5a:0b:82:aa:e2:f2:8a:ea:bd:7b:b2:64"]
       # attach workspace
       - attach_workspace:
           at: .
+      - run:
+          name: Install dependencies
+          working_directory: ./.circleci/ansible
+          command: |
+            apk add --update ansible
+            ansible --version
+            pip install awscli
 
+      - run:
+          name: Add back-end ip to ansible inventory
+          command: |
+            PUBLIC_URL=$(aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicIpAddress' --filters "Name=tag:project,Values=backend-${CIRCLE_WORKFLOW_ID}" --output text)
+            echo PUBLIC_URL
+
+            cd .circleci/ansible && echo "[web]" > ./inventory
+            echo ${PUBLIC_URL} >> ./inventory
+            cat ./inventory
+
+      - run:
+          name: Configure server
+          command: |
+            cd ./.circleci/ansible
+            cat inventory
+            ansible-playbook -i inventory configure-server.yml
+
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .circleci/ansible/inventory
+
+      # Here's where you will add some code to rollback on failure
+      - destroy-environment:
+          id: ${CIRCLE_WORKFLOW_ID}
+          when: on_fail
 
 workflows:
   s3-example:
