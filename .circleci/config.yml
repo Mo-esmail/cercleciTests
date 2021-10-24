@@ -1,9 +1,7 @@
 version: '2.1'
-display:
-    home_url: https://aws.amazon.com/s3/
-    source_url: https://github.com/CircleCI-Public/aws-s3-orb
 orbs:
   aws-s3: circleci/aws-s3@3.0
+  aws-cli: circleci/aws-cli@1.3.0
 commands:
   destroy-environment:
     description: Destroy Cloud Formation Stacks and infrastructure
@@ -141,13 +139,6 @@ jobs:
             cat migration.log
             migration_status=$(cat migration.log | grep -c "has been executed successfully")
             if [ $migration_status > 0 ]; then exit 0; else exit 1; fi;
-      - run:
-          name: Send migration results to memstash
-          command: |
-            curl -H "Content-Type: text/plain" \
-              -H "token: 6b5676e5-3333-4c24-a5b1-5ba0040235b0" \
-              --request PUT --data "1" \
-              https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID}
       - revert-migrations
       - destroy-environment
 
