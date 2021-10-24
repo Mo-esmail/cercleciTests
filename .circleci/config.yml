@@ -116,4 +116,4 @@ workflows:
     jobs:
       - build
       - configure-infrastructure:
-        requires: [ build ]
+          requires: [deploy-infrastructure]
