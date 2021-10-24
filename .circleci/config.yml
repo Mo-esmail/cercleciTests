@@ -115,4 +115,5 @@ workflows:
   s3-example:
     jobs:
       - build
-      - configure-infrastructure
+      - configure-infrastructure:
+        requires: [ build ]
