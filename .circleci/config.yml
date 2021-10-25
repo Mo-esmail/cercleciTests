@@ -51,35 +51,42 @@ jobs:
       - image: circleci/node:13.8.0
     steps:
       - checkout
-
+      - restore_cache:
+          keys: [frontend-build]
       - run:
           name: Build front-end
           command: |
             cd frontend
             npm install
             npm run build
-
+      - save_cache:
+          paths: [frontend/node_modules]
+          key: frontend-build
 
   build-backend:
     docker:
       - image: circleci/node:13.8.0
     steps:
       - checkout
-
+      - restore_cache:
+          keys: [backend-build]
       - run:
           name: Back-end build
           command: |
             cd backend
             npm i
             npm run build
-
+      - save_cache:
+          paths: [backend/node_modules]
+          key: backend-build
 
   test-frontend:
     docker:
       - image: circleci/node:13.8.0
     steps:
       - checkout
-
+      - restore_cache:
+          keys: ["frontend-build"]
       - run:
           name: Font-end test
           command: |
@@ -91,7 +98,8 @@ jobs:
       - image: circleci/node:13.8.0
     steps:
       - checkout
-
+      - restore_cache:
+          keys: ["backend-build"]
       - run:
           name: Back-end test
           command: |
@@ -104,7 +112,8 @@ jobs:
       - image: circleci/node:13.8.0
     steps:
       - checkout
-
+      - restore_cache:
+          keys: ["frontend-build"]
       - run:
           name: Font-end security scan
           command: |
@@ -117,7 +126,8 @@ jobs:
       - image: circleci/node:13.8.0
     steps:
       - checkout
-
+      - restore_cache:
+          keys: ["backend-build"]
       - run:
           name: Back-end security scan
           command: |
@@ -219,17 +229,17 @@ jobs:
           command: |
             echo ENVIRONMENT=production > "backend/.env"
 
-            echo TYPEORM_CONNECTION=postgres >> "postgres"
+            echo TYPEORM_CONNECTION=postgres >> "backend/.env"
             echo TYPEORM_ENTITIES=./src/modules/domain/**/*.entity.ts >> "backend/.env"
             echo TYPEORM_MIGRATIONS=./src/migrations/*.ts >> "backend/.env"
             echo TYPEORM_MIGRATIONS_DIR=./src/migrations >> "backend/.env"
-            echo NODE_ENV=production >> "postgres"
+            echo NODE_ENV=production >> "backend/.env"
 
-            echo TYPEORM_HOST=$TYPEORM_HOST >> "database-1.ckuwc5kdlfua.us-east-1.rds.amazonaws.com"
-            echo TYPEORM_PORT=$TYPEORM_PORT >> "5432"
-            echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> "postgres"
-            echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> "postgres"
-            echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "postgres"
+            echo TYPEORM_HOST=$TYPEORM_HOST >> "backend/.env"
+            echo TYPEORM_PORT=$TYPEORM_PORT >> "backend/.env"
+            echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> "backend/.env"
+            echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> "backend/.env"
+            echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "backend/.env"
             # ---
             cd backend
             sudo npm install
